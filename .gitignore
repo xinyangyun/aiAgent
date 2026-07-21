@@ -1,0 +1,8 @@
+.DS_Store
+.idea/
+__pycache__/
+*.pyc
+*.db
+*.db-shm
+*.db-wal
+chroma_memory_db/
