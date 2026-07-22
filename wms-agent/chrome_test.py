@@ -168,7 +168,7 @@ def run_demo():
     for uid, query, desc in test_cases:
         print('\n    [%s] 搜索: "%s"' % (uid, query))
         print("    (%s)" % desc)
-        results = query_by_user(index, uid, query, top_k=10)
+        results = query_by_user(index, uid, query, top_k=2)
         for r in results:
             print("      [%.3f] %s" % (r.score, r.node.text[:50]))
     print()
