@@ -148,6 +148,15 @@ def intent_classifier_node(state: AgentState) -> AgentState:
             user_text = m.content
             break
 
+    # 关键词规则：含对比/比较等复杂关键词 → 直接走规划，不调 LLM
+    complex_kw = ["对比", "比较", "分别", "汇总", "总结", "所有"]
+    if any(kw in user_text for kw in complex_kw):
+        intent, need_planner = "complex", True
+        print(f"[AGENT] 关键词命中 complex, 强制规划", flush=True)
+        phase = "plan"
+        return {"intent": intent, "need_planner": need_planner, "phase": phase}
+
+    # 调 LLM 分类
     r = fast_llm.invoke([
         SystemMessage(content=INTENT_PROMPT + f"\n用户: {user_text}"),
         HumanMessage(content="输出 JSON"),
@@ -156,17 +165,10 @@ def intent_classifier_node(state: AgentState) -> AgentState:
         data = json.loads(r.content.strip().strip("```json").strip("```").strip())
         intent = data.get("intent", "chat")
         need_planner = data.get("need_planner", False)
-        print(f"[AGENT] need_planner %f", need_planner, flush=True)
     except Exception:
         intent, need_planner = "chat", False
-
-    # 关键词兜底：含对比/比较等 → 强制走规划
-    complex_kw = ["对比", "比较", "分别", "汇总", "总结", "所有"]
-    if any(kw in user_text for kw in complex_kw):
-        intent = "complex"
-        need_planner = True
-        print(f"[AGENT] 关键词命中 complex, 强制规划", flush=True)
-
+    print(f"[AGENT] LLM 分类: intent={intent}, need_planner={need_planner}", flush=True)
+ 
     # 根据 intent 设置 phase
     if need_planner:
         phase = "plan"
