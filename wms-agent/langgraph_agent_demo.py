@@ -118,19 +118,26 @@ class AgentState(TypedDict):
 # Phase 1: Intent Classifier
 # ══════════════════════════════════════════════════════
 
-INTENT_PROMPT = """分析用户意图，输出 JSON：
-{
-  "intent": "chat | weather | inventory | complex",
-  "need_planner": true | false
-}
+INTENT_PROMPT = """你是一个任务分类器。
 
-规则:
-- weather: 天气、温度、下雨等
-- inventory: 库存、仓库、商品、销量等
-- chat: 其他简单问答（你是谁、什么是XX等）
-- complex: 包含多个子任务或需要多步操作
-- need_planner=true: 仅当 intent=complex 或明显需要多步骤时
-"""
+请分析用户请求：
+
+1. 判断任务类型：
+   - weather: 天气查询、温度、下雨、台风等
+   - inventory: 库存查询、仓库、商品、销量、预警等
+   - chat: 简单问答、闲聊、知识咨询（你是谁、什么是XX等）
+   - complex: 需要多步操作、多工具协作的复杂任务
+
+2. 判断是否需要规划（need_planner）：
+   - 如果任务需要多个步骤、多个工具协作、长期执行，请返回 true
+   - 否则返回 false
+
+输出 JSON：
+{
+  "intent": "",
+  "need_planner": true/false,
+  "reason": ""
+}"""
 
 def intent_classifier_node(state: AgentState) -> AgentState:
     print("[AGENT] -> intent_classifier_node", flush=True)
@@ -149,6 +156,7 @@ def intent_classifier_node(state: AgentState) -> AgentState:
         data = json.loads(r.content.strip().strip("```json").strip("```").strip())
         intent = data.get("intent", "chat")
         need_planner = data.get("need_planner", False)
+        print(f"[AGENT] need_planner %f", need_planner, flush=True)
     except Exception:
         intent, need_planner = "chat", False
 
