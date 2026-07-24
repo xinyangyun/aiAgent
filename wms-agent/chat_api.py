@@ -8,7 +8,7 @@ FastAPI Chat API — 封装 LangGraph Agent 为 HTTP 接口
 
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, AIMessage
 
 from langgraph_agent_demo import build_agent
 
@@ -72,7 +72,14 @@ def query(req: QueryRequest):
     config = {"configurable": {"thread_id": thread_id, "checkpoint_ns": ""}}
 
     result = agent.invoke(
-        {"messages": [HumanMessage(content=req.message)]},
+        {
+            "messages": [HumanMessage(content=req.message)],
+            "intent": "",
+            "need_planner": False,
+            "plan": [],
+            "current_step": 0,
+            "phase": "",
+        },
         config=config,
     )
 
@@ -80,8 +87,14 @@ def query(req: QueryRequest):
     if not messages:
         raise HTTPException(status_code=500, detail="Agent 没有返回任何消息")
 
-    last_msg = messages[-1]
-    content = last_msg.content if hasattr(last_msg, "content") else str(last_msg)
+    # 找最后一条有内容的 AI 消息
+    content = ""
+    for m in reversed(messages):
+        if isinstance(m, AIMessage) and m.content and len(m.content) > 5:
+            content = m.content
+            break
+    if not content:
+        content = messages[-1].content if hasattr(messages[-1], "content") else str(messages[-1])
 
     # 判断执行节点
     node = result.get("next_node", "")
