@@ -109,6 +109,7 @@ def query(req: QueryRequest):
         elif h["role"] == "assistant":
             msgs.append(AIMessage(content=h["content"]))
     msgs.append(HumanMessage(content=req.message))
+    print("[AGENT] -> query：msg:%f", msgs, flush=True)
 
     # 每次都新建线程，历史由 ShortMemory 管理
     thread_id = f"api-{req.session_id}-{uuid.uuid4().hex[:6]}"
@@ -116,7 +117,8 @@ def query(req: QueryRequest):
 
     result = agent.invoke(
         {
-            "messages": msgs,
+            # "messages": msgs,
+            "messages": [HumanMessage(content=req.message)],
             "intent": "",
             "need_planner": False,
             "plan": [],
