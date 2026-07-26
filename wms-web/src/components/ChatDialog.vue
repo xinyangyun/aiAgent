@@ -13,6 +13,12 @@
           {{ connected ? '在线' : '连接中...' }}
         </div>
       </div>
+      <div class="header-spacer"></div>
+      <button class="logout-btn" @click="handleLogout" title="退出登录">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+        </svg>
+      </button>
     </div>
 
     <!-- 消息列表 -->
@@ -103,6 +109,12 @@ async function handleSend() {
   }
 }
 
+function handleLogout() {
+  sessionStorage.removeItem("token")
+  sessionStorage.removeItem("username")
+  window.location.reload()
+}
+
 function escapeHtml(text) {
   const div = document.createElement('div')
   div.textContent = text
@@ -156,6 +168,26 @@ onMounted(() => {
 }
 .header-status.online {
   color: #52c41a;
+}
+.header-spacer {
+  flex: 1;
+}
+.logout-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+.logout-btn:hover {
+  background: #f5f5f5;
+  color: #ff4d4f;
 }
 
 /* 消息列表 */

@@ -13,6 +13,7 @@ from langchain_core.messages import HumanMessage, AIMessage
 from langgraph_agent_demo import build_agent
 from memory.short_memory import ShortMemory
 import uuid
+from user.auth import login as auth_login, logout as auth_logout
 
 # ── 应用初始化 ────────────────────────────────────────
 
@@ -63,6 +64,32 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+@app.post("/api/login")
+def login(req: LoginRequest):
+    """用户登录。"""
+    result = auth_login(req.username, req.password)
+    if result["success"]:
+        return {
+            "code": 0,
+            "message": "登录成功",
+            "data": {"token": result["token"], "username": result["username"]},
+        }
+    return {"code": 1, "message": result["message"]}
+
+
+@app.post("/api/logout")
+def logout(req: dict):
+    """退出登录。"""
+    token = req.get("token", "")
+    auth_logout(token)
+    return {"code": 0, "message": "已退出"}
 
 
 @app.post("/query", response_model=QueryResponse)
