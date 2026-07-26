@@ -88,7 +88,7 @@ class ShortMemory:
 
         # 裁剪
         limit = max_turns * 2
-        if len(data["messages"]) > limit:
+        if len(data["messages"]) >= limit:
             data["messages"] = data["messages"][-limit:]
 
         data["updated_at"] = time.time()
@@ -96,10 +96,12 @@ class ShortMemory:
             data["created_at"] = time.time()
 
         self._store.put(("threads",), thread_id, data)
+        print(f"[MEM] {thread_id} 保存消息 (role={role}), 共 {len(data['messages'])} 条", flush=True)
         return msg_obj
 
     def add_turn(self, thread_id: str, user_msg: str, assistant_msg: str,
                  max_turns: Optional[int] = None) -> None:
+        print(f"[MEM] 保存对话轮次: {thread_id}", flush=True)
         self.add_message(thread_id, "user", user_msg, max_turns)
         self.add_message(thread_id, "assistant", assistant_msg, max_turns)
 
@@ -128,8 +130,10 @@ class ShortMemory:
         for item in self._store.search(("threads",), limit=1000):
             age = now - item.value.get("updated_at", 0)
             if age >= self.ttl:
+                print(f"[MEM] 清理过期线程: {item.key} (age={age:.1f}s)", flush=True)
                 self._store.delete(("threads",), item.key)
                 count += 1
+        print(f"[MEM] 共清理 {count} 个过期线程", flush=True)
         return count
 
     def clear_all(self) -> None:

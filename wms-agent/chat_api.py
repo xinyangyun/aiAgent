@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from langchain_core.messages import HumanMessage, AIMessage
 
 from langgraph_agent_demo import build_agent
+from memory.short_memory import ShortMemory
+import uuid
 
 # ── 应用初始化 ────────────────────────────────────────
 
@@ -22,6 +24,7 @@ app = FastAPI(
 
 # 全局复用同一个 Agent 实例
 agent = build_agent()
+mem = ShortMemory(max_turns=20, ttl_seconds=1800)
 
 
 # ── 数据模型 ──────────────────────────────────────────
@@ -68,12 +71,25 @@ def query(req: QueryRequest):
     if not req.message.strip():
         raise HTTPException(status_code=400, detail="消息不能为空")
 
-    thread_id = f"api-{req.session_id}"
+    # 从短期记忆加载历史（最多 10 轮）
+    history = mem.get_history(req.session_id, last_n=10)
+
+    # 构建消息：历史 + 当前问题
+    msgs = []
+    for h in history:
+        if h["role"] == "user":
+            msgs.append(HumanMessage(content=h["content"]))
+        elif h["role"] == "assistant":
+            msgs.append(AIMessage(content=h["content"]))
+    msgs.append(HumanMessage(content=req.message))
+
+    # 每次都新建线程，历史由 ShortMemory 管理
+    thread_id = f"api-{req.session_id}-{uuid.uuid4().hex[:6]}"
     config = {"configurable": {"thread_id": thread_id, "checkpoint_ns": ""}}
 
     result = agent.invoke(
         {
-            "messages": [HumanMessage(content=req.message)],
+            "messages": msgs,
             "intent": "",
             "need_planner": False,
             "plan": [],
@@ -96,13 +112,13 @@ def query(req: QueryRequest):
     if not content:
         content = messages[-1].content if hasattr(messages[-1], "content") else str(messages[-1])
 
-    # 判断执行节点
-    node = result.get("next_node", "")
+    # 保存到短期记忆
+    mem.add_turn(req.session_id, req.message, content)
 
     return QueryResponse(
         response=content,
         session_id=req.session_id,
-        node=node,
+        node="",
     )
 
 

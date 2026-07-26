@@ -32,8 +32,8 @@ from langgraph.checkpoint.memory import MemorySaver
 DEEPSEEK_API_KEY = os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1")
 
-llm = ChatOpenAI(model="deepseek-chat", api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL, temperature=0.3, max_tokens=2048)
-fast_llm = ChatOpenAI(model="deepseek-chat", api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL, temperature=0.1, max_tokens=128)
+llm = ChatOpenAI(model="deepseek-v4-flash", api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL, temperature=0.3, max_tokens=2048)
+fast_llm = ChatOpenAI(model="deepseek-v4-flash", api_key=DEEPSEEK_API_KEY, base_url=DEEPSEEK_BASE_URL, temperature=0.1, max_tokens=128)
 
 
 # ══════════════════════════════════════════════════════
@@ -150,6 +150,7 @@ def intent_classifier_node(state: AgentState) -> AgentState:
 
     # 关键词规则：含对比/比较等复杂关键词 → 直接走规划，不调 LLM
     complex_kw = ["对比", "比较", "分别", "汇总", "总结", "所有"]
+    print("[AGENT] -> intent_classifier_node %f", user_text, flush=True)
     if any(kw in user_text for kw in complex_kw):
         intent, need_planner = "complex", True
         print(f"[AGENT] 关键词命中 complex, 强制规划", flush=True)
